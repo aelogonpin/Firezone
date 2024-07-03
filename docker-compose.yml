@@ -1,10 +1,18 @@
 version: '3.7'
 
+x-deploy: &default-deploy
+  restart_policy:
+    condition: unless-stopped
+    delay: 5s
+    window: 120s
+  update_config:
+    order: start-first
+
 services:
   caddy:
     image: caddy:2
     volumes:
-      - ${FZ_INSTALL_DIR:-.}/caddy:/data/caddy
+      - ${FZ_INSTALL_DIR}caddy:/data/caddy
     command:
       - /bin/sh
       - -c
@@ -12,7 +20,7 @@ services:
         cat <<EOF > /etc/caddy/Caddyfile && caddy run --config /etc/caddy/Caddyfile
         ${EXTERNAL_URL} {
           log
-          reverse_proxy * 172.25.0.100:${PHOENIX_PORT:-13000}
+          reverse_proxy * 172.25.0.100:${PHOENIX_PORT}
         }
         EOF
     network_mode: "host"
@@ -20,13 +28,13 @@ services:
       <<: *default-deploy
 
   firezone:
-    image: firezone/firezone:${VERSION:-latest}
+    image: firezone/firezone:${VERSION}
     ports:
-      - ${WIREGUARD_PORT:-51820}:${WIREGUARD_PORT:-51820}/udp
+      - "${WIREGUARD_PORT}:${WIREGUARD_PORT}/udp"
     env_file:
-      - ${FZ_INSTALL_DIR:-.}/.env
+      - ${FZ_INSTALL_DIR}.env
     volumes:
-      - ${FZ_INSTALL_DIR:-.}/firezone:/var/firezone
+      - ${FZ_INSTALL_DIR}firezone:/var/firezone
     cap_add:
       - NET_ADMIN
       - SYS_MODULE
@@ -48,9 +56,9 @@ services:
     volumes:
       - postgres-data:/var/lib/postgresql/data
     environment:
-      POSTGRES_DB: ${DATABASE_NAME:-firezone}
-      POSTGRES_USER: ${DATABASE_USER:-postgres}
-      POSTGRES_PASSWORD: ${DATABASE_PASSWORD:?err}
+      POSTGRES_DB: ${DATABASE_NAME}
+      POSTGRES_USER: ${DATABASE_USER}
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
     networks:
       - firezone-network
     deploy:
